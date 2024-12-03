@@ -17,6 +17,7 @@ Este proyecto es una aplicación móvil desarrollada en React Native, compatible
 - Xcode (para desarrollo en iOS)
 - [React Native](https://github.com/facebook/react-native).
 - [React Native WebView](https://github.com/react-native-webview/react-native-webview).
+- [React Native Cookies/Cookies](https://github.com/react-native-cookies/cookies).
 - [React Native BLE PLX](https://github.com/dotintent/react-native-ble-plx).
 - [React Navigation](https://github.com/react-navigation/react-navigation).
 - [React Native File Viewer](https://github.com/vinzscam/react-native-file-viewer). Para la lectura de documentos en PDF.

@@ -4,7 +4,7 @@ import { CookieManager } from '@react-native-cookies/cookies';
 const COOKIE_STORAGE_KEY = 'session_cookies';
 
 export const saveCookies = async (domain: string) => {
-    const allCookies = await CookieManager.get(domain);
+    const allCookies = await CookieManager.get('https://dev.jfa.name');
     await AsyncStorage.setItem(COOKIE_STORAGE_KEY, JSON.stringify(allCookies));
   };
   
@@ -16,7 +16,7 @@ export const saveCookies = async (domain: string) => {
         const parsedCookies = JSON.parse(storedCookies);
         for (const cookieName in parsedCookies) {
           console.log(`Estableciendo cookie: ${cookieName}`);
-          await CookieManager.set(domain, {
+          await CookieManager.set('https://dev.jfa.name', {
             name: cookieName,
             value: parsedCookies[cookieName].value,
             domain: parsedCookies[cookieName].domain || domain,

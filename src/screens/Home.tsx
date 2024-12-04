@@ -1,28 +1,23 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, Text, TextInput, Button, ActivityIndicator, Alert, PermissionsAndroid, Platform } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Alert, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { WebView } from 'react-native-webview';
-import { Cookies, CookieManager } from '@react-native-cookies/cookies';
-//import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { CookieManager } from '@react-native-cookies/cookies';
 import FileViewer from "react-native-file-viewer";
 import RNPrint from 'react-native-print';
 
 const Stack = createStackNavigator();
 
-const HomeScreen = ({ navigation }) => {
+const Home = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [cookiesLoaded, setCookiesLoaded] = useState(false);
-  const [cookies, setCookies] = useState<string[] | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [cookies, setCookies] = useState<string | null>(null);
   const webViewRef = useRef(null);
 
-  // Comprobar conexión
+  // Comprobar conexión a Internet
   const checkInternetConnection = async () => {
     const state = await NetInfo.fetch();
     if (!state.isConnected) {
@@ -35,41 +30,8 @@ const HomeScreen = ({ navigation }) => {
     }
     return true;
   };
-  // Estado de sesión
-  const checkLoginStatus = async () => {
-    try {
-      const storedCookies = await AsyncStorage.getItem('session_cookies');
-      console.log('Cookies almacenadas:', storedCookies);
-  
-      if (storedCookies) {
-        const parsedCookies = JSON.parse(storedCookies);
-        console.log("parsedCookies:", parsedCookies);
-  
-        const cookieArray = Object.keys(parsedCookies).map(cookieName => {
-          const cookieValue = parsedCookies[cookieName].value;
-          return `${cookieName}=${cookieValue}`;
-        });
-  
-        const cookieString = cookieArray.join('; ');
-        console.log('Cookies unidas para WebView (limpias):', cookieString);
-        setCookies(cookieString);
-        setLoggedIn(true); // Aquí marca al usuario como logueado
-      } else {
-        console.log("No hay cookies guardadas, el usuario no está logueado.");
-      }
-    } catch (error) {
-      console.error("Error comprobando estado de login:", error);
-    } finally {
-      setLoading(false); // Asegúrate de desactivar el estado de carga
-    }
-  };
-  
-  // Añadir encabezados de cookies a la WebView si se tiene una sesión
 
-  const customHeaders = {
-    Cookie: cookies || '',
-  };
-
+  // Cargar cookies
   const loadCookies = async () => {
     try {
       const storedCookies = await AsyncStorage.getItem('session_cookies');
@@ -86,34 +48,68 @@ const HomeScreen = ({ navigation }) => {
           });
         }
         setCookiesLoaded(true);
-        console.log('Cookies cargadas correctamente.');
+        setCookies(storedCookies);
       }
     } catch (error) {
       console.error('Error al cargar cookies:', error);
       await AsyncStorage.removeItem('session_cookies'); // Limpia cookies corruptas
+    } finally {
+      setLoading(false);
     }
   };
-  
+
   useEffect(() => {
+    checkInternetConnection();
     loadCookies();
-    checkLoginStatus();
   }, []);
-  
+
+  // Navegación en el WebView
+  const handleNavigationRequest = (event) => {
+    const { url } = event;
+    if (url.includes("printview")) {
+      Alert.alert(
+        "Impresión Detectada",
+        "Se detectó un intento de impresión. Procesando..."
+      );
+      webViewRef.current.injectedJavaScript(`
+        window.print();
+      `);
+      return false;
+    } else if (url.endsWith(".pdf")) {
+      FileViewer.open(url)
+        .then(() => console.log('Archivo PDF abierto'))
+        .catch(err => console.error('Error abriendo PDF:', err));
+      return false;
+    }
+    return true;
+  };
+
   return (
-    <NavigationContainer>
+    <View style={styles.container}>
       {loading ? (
         <ActivityIndicator size="large" color="#0000ff" />
-      ) : loggedIn ? (
-        <Stack.Navigator>
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Configuration" component={Configuration} options={{ title: 'Configuración' }} />
-        </Stack.Navigator>
       ) : (
-        <Stack.Navigator>
-          <Stack.Screen name="Login" component={LoginScreen} />
-        </Stack.Navigator>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: 'https://dev.jfa.name/app/posapp', headers: { Cookie: cookies || '' } }}
+          onLoadEnd={() => console.log("Página cargada")}
+          onError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn("WebView error:", nativeEvent);
+          }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          scalesPageToFit={true}
+          injectedJavaScript={`
+            const meta = document.createElement('meta'); 
+            meta.setAttribute('name', 'viewport'); 
+            meta.setAttribute('content', 'height=100%, initial-scale=0, maximum-scale=0, user-scalable=no'); 
+            document.getElementsByTagName('head')[0].appendChild(meta);
+          `}
+          onShouldStartLoadWithRequest={handleNavigationRequest}
+        />
       )}
-    </NavigationContainer>
+    </View>
   );
 };
 
@@ -123,34 +119,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pdf: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
   webview: {
     flex: 1,
   },
   loader: {
-    flex:1,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loginContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  input: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
 });
 
+export default Home;

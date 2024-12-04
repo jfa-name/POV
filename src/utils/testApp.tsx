@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, Alert, TextInput, Button, StyleSheet } from 'react-native';
 import WebView from 'react-native-webview';
-const localHtmlFile = require('./test.html');
+// const localHtmlFile = require('./test.html');
 
 const TestApp = () => {
   const handlePrint = (data) => {

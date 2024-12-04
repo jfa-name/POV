@@ -10,27 +10,30 @@ export const saveCookies = async (domain: string) => {
   
   export const loadCookies = async (domain: string) => {
     try {
-        const storedCookies = await AsyncStorage.getItem(COOKIE_STORAGE_KEY);
-        if (storedCookies) {
-            console.log('Cookies almacenadas:', storedCookies);
-            const parsedCookies = JSON.parse(storedCookies);
-            for (const cookieName in parsedCookies) {
-                console.log(`Estableciendo cookie: ${cookieName}`);
-                await CookieManager.set(domain, {
-                    name: cookieName,
-                    value: parsedCookies[cookieName].value,
-                    domain: parsedCookies[cookieName].domain || domain,
-                    path: parsedCookies[cookieName].path || '/',
-                    version: '1',
-                    expires: parsedCookies[cookieName].expires,
-                });
-            }
-        } else {
-            console.log("No se encontraron cookies almacenadas.");
+      const storedCookies = await AsyncStorage.getItem(COOKIE_STORAGE_KEY);
+      if (storedCookies) {
+        console.log('Cookies almacenadas:', storedCookies);
+        const parsedCookies = JSON.parse(storedCookies);
+        for (const cookieName in parsedCookies) {
+          console.log(`Estableciendo cookie: ${cookieName}`);
+          await CookieManager.set(domain, {
+            name: cookieName,
+            value: parsedCookies[cookieName].value,
+            domain: parsedCookies[cookieName].domain || domain,
+            path: parsedCookies[cookieName].path || '/',
+            version: '1',
+            expires: parsedCookies[cookieName].expires,
+          });
         }
+        return parsedCookies; // Devuelve las cookies cargadas
+      } else {
+        console.log('No se encontraron cookies almacenadas.');
+        return null;
+      }
     } catch (error) {
-        console.error('Error al cargar cookies:', error);
-        await AsyncStorage.removeItem(COOKIE_STORAGE_KEY); // Limpia cookies corruptas
+      console.error('Error al cargar cookies:', error);
+      await AsyncStorage.removeItem(COOKIE_STORAGE_KEY); // Limpia cookies corruptas
+      return null;
     }
   };
   
